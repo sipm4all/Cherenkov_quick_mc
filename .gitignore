@@ -1,6 +1,9 @@
 # Internal test macro
 macros/test.C
 
+# ignore vscode folder
+.vscode
+
 # Prerequisites
 *.d
 
