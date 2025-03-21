@@ -1,3 +1,6 @@
+# Internal test macro
+macros/test.C
+
 # Prerequisites
 *.d
 
