@@ -1,3 +1,8 @@
+//  last update: 21/03/2025
+//  author: Nicola Rubini - nicola.rubini@bo.infn.it
+//  Scope: List of constants
+//  TODO: -
+
 //  General physical constants
 const float _c0 = 299792458., speed_of_light = 299792458.;                      // [m / s]
 const float _e = 1.60217663e-19, elementary_charge = 1.60217663e-19;            // [C]
