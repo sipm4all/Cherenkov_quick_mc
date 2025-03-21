@@ -15,17 +15,18 @@ namespace cherenkov
     inline float get_ch_thr_momentum(float ref_index, float mass) { return mass * get_ch_thr_relativistic_beta(ref_index) * dynamics::get_relativistic_gamma(get_ch_thr_relativistic_beta(ref_index)); }
     inline float get_ch_thr_mass(float ref_index, float momentum) { return momentum / (get_ch_thr_relativistic_beta(ref_index) * dynamics::get_relativistic_gamma(get_ch_thr_relativistic_beta(ref_index))); }
     //  --- Photons production
-    //  Var: [0] beta, Par: [0] lambda, [1] ref_index;
+    //  Var: [0] beta, Par: [0] lambda (nm), [1] ref_index;
+    //  Res: n_photons (1 / cm)
     double simp_frank_tamm(double *beta, double *parameters);
     TF1 *fsimp_frank_tamm = new TF1("fsimp_frank_tamm", simp_frank_tamm, 0, 10, 2);
 };
 
-cherenkov::simp_frank_tamm(double *beta, double *parameters) double testbeam::simp_frank_tamm(double *beta, double *parameters)
+double cherenkov::simp_frank_tamm(double *beta, double *parameters)
 {
     auto _beta = beta[0];
-    auto lambda = parameters[0];
+    auto lambda = parameters[0] * 1.e-9;
     auto ref_index = parameters[1];
-    auto result = 2 * TMath::Pi() * a_EM * (1. / (lambda * lambda)) * (1. - 1. / (_beta * _beta * ref_index * ref_index));
+    auto result = 1.e-11 * 2 * TMath::Pi() * _a_EM * (1. / (lambda * lambda)) * (1. - 1. / (_beta * _beta * ref_index * ref_index));
     return result;
 }
 
