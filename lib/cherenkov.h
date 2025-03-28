@@ -18,6 +18,7 @@ namespace cherenkov
     //  Var: [0] beta, Par: [0] lambda (nm), [1] ref_index;
     //  Res: n_photons (1 / cm)
     double simp_frank_tamm(double *beta, double *parameters);
+    double simp_frank_tamm_int(double lambda_min, double lambda_max, double beta, double ref_index) { return (1. / (lambda_min * 1.e-9) - 1. / (lambda_max * 1.e-9)) * 1.e-11 * 2 * TMath::Pi() * _a_EM * (1. - 1. / (beta * beta * ref_index * ref_index)); }
     TF1 *fsimp_frank_tamm = new TF1("fsimp_frank_tamm", simp_frank_tamm, 0, 10, 2);
 };
 
