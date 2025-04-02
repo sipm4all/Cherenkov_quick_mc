@@ -1,7 +1,9 @@
-//  last update: 21/03/2025
+//  last update: 02/04/2025
 //  author: Nicola Rubini - nicola.rubini@bo.infn.it
 //  Scope: List of constants
 //  TODO: -
+
+#pragma once
 
 //  General physical constants
 const float _c0 = 299792458., speed_of_light = 299792458.;                      // [m / s]
@@ -12,6 +14,7 @@ const float _a_EM = 1. / 137.035999084, fine_struct_const = 1. / 137.035999084; 
 
 //  Particle masses
 const float kElectronMass = 0.0005110; // [GeV / c^2]
+const float kPhotonMass = 0.;          // [GeV / c^2]
 const float kMuonMass = 0.1057;        // [GeV / c^2]
 const float kPionMass = 0.1396;        // [GeV / c^2]
 const float kKaonMass = 0.4937;        // [GeV / c^2]

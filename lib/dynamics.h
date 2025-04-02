@@ -1,7 +1,9 @@
-//  last update: 21/03/2025
+//  last update: 02/04/2025
 //  author: Nicola Rubini - nicola.rubini@bo.infn.it
 //  Scope: General dynamics and Cherenkov specifcs kinematic helper fuynctions
 //  TODO: -
+
+#pragma once
 
 #include "constants.h"
 

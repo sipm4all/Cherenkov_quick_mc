@@ -1,241 +1,20 @@
-//  last update: 21/03/2025
+//  last update: 02/04/2025
 //  author: Nicola Rubini - nicola.rubini@bo.infn.it
 //  Scope: Cherenkov fast mc
-//  TODO: 1. In particle you should be able to give the PDG id and set automatically mass, charge, etc.
+//  TODO:   1. In particle you should be able to give the PDG id and set automatically mass, charge, etc.
+//          2. Add event time, define a particle internal time (?) To be thought about
 
 #pragma once
 
+#include "probability.h"
+#include "particle.h"
+#include "physics_vector.h"
 #include "cherenkov.h"
 
 namespace ch_fast_mc
 {
     class fast_mc_event;
     class fast_mc_geometry;
-    class physics_vector
-    {
-    private:
-        std::array<float, 4> _vector;
-        std::array<int, 4> _metric;
-
-    public:
-        //  Contructor
-        physics_vector()
-        {
-            _vector.fill(0.0f);
-            _metric = {-1, 1, 1, 1};
-        }
-        physics_vector(float t, float x, float y, float z)
-        {
-            _vector = {t, x, y, z};
-            _metric = {-1, 1, 1, 1};
-        }
-
-        // Getter methods
-        float get_x() const { return _vector[1]; }
-        float get_y() const { return _vector[2]; }
-        float get_z() const { return _vector[3]; }
-        float get_t() const { return _vector[0]; }
-        float get_r() const { return std::sqrt(get_x() * get_x() + get_y() * get_y() + get_z() * get_z()); }
-        float get_theta() const { return std::acos(get_z() / get_r()); }
-        float get_phi() const { return std::atan2(get_y(), get_x()); }
-        physics_vector get_direction() { return (*this) /= (get_r()); }
-        std::array<physics_vector, 3> get_spatial_orth_base();
-        std::array<int, 4> get_metric() { return _metric; }
-
-        // Setter methods
-        void set_x_y_z_t(float t, float x, float y, float z);
-        void set_x_y_z(float x, float y, float z);
-        void set_x(float x) { _vector[1] = x; }
-        void set_y(float y) { _vector[2] = y; }
-        void set_z(float z) { _vector[3] = z; }
-        void set_t(float t) { _vector[0] = t; }
-        void set_r_theta_phi(float r, float theta, float phi);
-        void set_r(float r) { set_r_theta_phi(r, get_theta(), get_phi()); }
-        void set_theta(float theta) { set_r_theta_phi(get_r(), theta, get_phi()); }
-        void set_phi(float phi) { set_r_theta_phi(get_r(), get_theta(), phi); }
-        void set_metric(const std::array<int, 4> &new_metric) { _metric = new_metric; }
-
-        // Overloaded operators
-        float &operator[](int index) { return _vector[index]; }
-        physics_vector &operator*=(double scale);
-        physics_vector &operator/=(double scale) { return (*this) *= 1. / scale; }
-        physics_vector &operator*=(const physics_vector &other);
-        // physics_vector operator*(const physics_vector &other) const;
-        // physics_vector operator/(const physics_vector &other) const;
-        physics_vector operator+(const physics_vector &other) const;
-        physics_vector operator-(const physics_vector &other) const;
-
-        // Other methods
-        physics_vector spatial_cross_product(physics_vector target_2) { return physics_vector((*this)[2] * target_2[3] - (*this)[3] * target_2[2], (*this)[3] * target_2[1] - (*this)[1] * target_2[3], (*this)[1] * target_2[2] - (*this)[2] * target_2[1], 0.); }
-    };
-
-    physics_vector &physics_vector::operator*=(double scale)
-    {
-        for (int i = 0; i < 4; ++i)
-            _vector[i] *= scale;
-        return *this;
-    }
-    physics_vector &physics_vector::operator*=(const physics_vector &other)
-    {
-        for (int i = 0; i < 4; ++i)
-            _vector[i] *= _metric[i] * other._vector[i];
-        return *this;
-    }
-    physics_vector physics_vector::operator+(const physics_vector &other) const
-    {
-        physics_vector result;
-        for (int i = 0; i < 4; ++i)
-            result._vector[i] = _vector[i] + other._vector[i];
-        return result;
-    }
-    physics_vector physics_vector::operator-(const physics_vector &other) const
-    {
-        physics_vector result;
-        for (int i = 0; i < 4; ++i)
-            result._vector[i] = _vector[i] - other._vector[i];
-        return result;
-    }
-    void physics_vector::set_x_y_z_t(float t, float x, float y, float z)
-    {
-        set_t(t);
-        set_x(x);
-        set_y(y);
-        set_z(z);
-    }
-    void physics_vector::set_x_y_z(float x, float y, float z)
-    {
-        set_x(x);
-        set_y(y);
-        set_z(z);
-    }
-    void physics_vector::set_r_theta_phi(float r, float theta, float phi)
-    {
-        set_x(r * std::sin(theta) * std::cos(phi));
-        set_y(r * std::sin(theta) * std::sin(phi));
-        set_z(r * std::cos(theta));
-    }
-    std::array<physics_vector, 3> physics_vector::get_spatial_orth_base()
-    {
-        //  Define result
-        std::array<physics_vector, 3> result;
-
-        //  First base versor is the vector itself
-        result[0] = (*this).get_direction();
-        result[0].set_t(0);
-
-        //  Define a second perpendicular versor
-        if ((fabs(result[0].get_x()) < 1.e-9) && (fabs(result[0].get_y()) < 1.e-9))
-            result[1] = physics_vector(0., 1., 0., 0.);
-        else
-            result[1] = physics_vector(0., -result[0].get_y(), result[0].get_x(), 0.);
-
-        //  Use cross product to find last versor
-        result[2] = result[1].spatial_cross_product(result[0]);
-
-        //  Impose normalisation
-        for (auto &current_vector : result)
-            current_vector = current_vector.get_direction();
-
-        // result
-        return result;
-    }
-
-    class particle
-    {
-    private:
-        physics_vector momentum; // (E, px, py, pz)
-        physics_vector position; // (t, x, y, z)
-        int PDG_id;
-        float mass;
-        int sign;     // 1 for particle, -1 for antiparticle
-        float charge; // Electrical charge in units of e
-
-    public:
-        // Constructor
-        particle(float px = 0, float py = 0, float pz = 0, float E = 0, float x = 0, float y = 0, float z = 0, float t = 0, float m = 0, int s = 1, float q = 0)
-            : momentum{E, px, py, pz}, position{t, x, y, z}, mass(m), sign(s), charge(q) {}
-
-        // Getters
-        physics_vector &get_momentum() { return momentum; }
-        float get_px() const { return momentum.get_x(); }
-        float get_py() const { return momentum.get_y(); }
-        float get_pz() const { return momentum.get_z(); }
-        float get_E() const { return momentum.get_t(); }
-        float get_betax() const { return get_px() / get_E(); }
-        float get_betay() const { return get_py() / get_E(); }
-        float get_betaz() const { return get_pz() / get_E(); }
-        float get_p() const { return std::sqrt(get_px() * get_px() + get_py() * get_py() + get_pz() * get_pz()); }
-        float get_beta() const { return get_p() / get_E(); }
-        int get_PDG_id() const { return PDG_id; }
-        float get_mass() const { return mass; }
-        int get_sign() const { return sign; }
-        float get_charge() const { return charge; }
-        physics_vector &get_position() { return position; }
-        float get_x() const { return position.get_x(); }
-        float get_y() const { return position.get_y(); }
-        float get_z() const { return position.get_z(); }
-        float get_t() const { return position.get_t(); }
-
-        // Setters
-        void set_px(float px) { momentum[1] = px; }
-        void set_py(float py) { momentum[2] = py; }
-        void set_pz(float pz) { momentum[3] = pz; }
-        void set_E(float E) { momentum[0] = E; }
-        void set_momentum(float px, float py, float pz);
-        void set_momentum(float px, float py, float pz, float E);
-        void set_momentum(const std::array<float, 3> &direction, float magnitude);
-        void set_position(float t, float x, float y, float z) { position = {t, x, y, z}; }
-        void set_PDG_id(int id) { PDG_id = id; }
-        void set_mass(float m) { mass = m; }
-        void set_sign(int s) { sign = s; }
-        void set_charge(float q) { charge = q; }
-
-        // Methods
-        void energy_shift(float energy_loss);
-    };
-
-    void particle::set_momentum(float px, float py, float pz)
-    {
-        set_px(px);
-        set_py(py);
-        set_pz(pz);
-        set_E(std::sqrt(px * px + py * py + pz * pz + mass * mass));
-    }
-    void particle::set_momentum(float px, float py, float pz, float E)
-    {
-        momentum = {E, px, py, pz};
-        mass = std::sqrt(E * E - (px * px + py * py + pz * pz));
-    }
-    void particle::set_momentum(const std::array<float, 3> &direction, float magnitude)
-    {
-        float norm = std::sqrt(direction[0] * direction[0] + direction[1] * direction[1] + direction[2] * direction[2]);
-        if (norm > 0)
-        {
-            set_px(magnitude * direction[0] / norm);
-            set_py(magnitude * direction[1] / norm);
-            set_pz(magnitude * direction[2] / norm);
-            set_E(std::sqrt(get_px() * get_px() + get_py() * get_py() + get_pz() * get_pz() + mass * mass));
-        }
-        else
-        {
-            set_px(0);
-            set_py(0);
-            set_pz(0);
-            set_E(mass);
-        }
-    }
-    void particle::energy_shift(float energy_shift)
-    {
-        std::array<float, 3> direction = {get_px(), get_py(), get_pz()};
-        auto momentum = get_p();
-        if ((get_E() + energy_shift) <= mass)
-        {
-            set_momentum(0., 0., 0.);
-            return;
-        }
-        auto new_momentum = std::sqrt((get_E() + energy_shift) * (get_E() + energy_shift) - mass * mass);
-        set_momentum(get_px() * (new_momentum) / (momentum), get_py() * (new_momentum) / (momentum), get_pz() * (new_momentum) / (momentum));
-    }
 
     class ch_radiator
     {
@@ -270,10 +49,10 @@ namespace ch_fast_mc
         double get_length() const { return length; }
         double get_width() const { return width; }
         physics_vector get_position() const { return position; }
-        float get_x() const { return position.get_x(); }
-        float get_y() const { return position.get_y(); }
-        float get_z() const { return position.get_z(); }
-        float get_t() const { return position.get_t(); }
+        double get_x() const { return position.get_x(); }
+        double get_y() const { return position.get_y(); }
+        double get_z() const { return position.get_z(); }
+        double get_t() const { return position.get_t(); }
 
         // Setters
         void set_refractive_index_graph(const TGraphErrors &graph) { refractiveIndexGraph = graph; }
@@ -351,12 +130,13 @@ namespace ch_fast_mc
         std::map<int, particle> &get_particles() { return particles; }
         void set_particle_by_id(int id, const particle &p) { particles[id] = p; }
         const std::map<int, ch_radiator> &get_radiators() { return event_geometry.get_radiators(); }
+        particle get_id_particle(int id) const;
+        int get_particle_id(particle target) const;
 
         // Setter for particles_counter
         void set_geometry(fast_mc_geometry current_geometry) { event_geometry = current_geometry; }
         void set_relationships(const std::map<int, int> &new_relationships) { relationships = new_relationships; }
         void set_particles(const std::map<int, particle> &new_particles) { particles = new_particles; }
-        particle get_id_particle(int id) const;
         void set_relationship(int mother_id, int daughter_id) { relationships[mother_id] = daughter_id; };
 
         //  Methods
@@ -383,21 +163,24 @@ namespace ch_fast_mc
     private:
         //  Physics limits
         double dt;
-        std::array<float, 2> cherenkov_emission_wavelength = {280, 850};
+        std::array<double, 2> cherenkov_emission_wavelength = {280, 850};
 
         fast_mc_event &target_event;
         std::map<int, bool> list_of_end_propagation_particles;
 
     public:
         // Constructors
-        propagator(fast_mc_event &event) : target_event(event), dt(1.e-4) {}
+        propagator(fast_mc_event &event) : target_event(event), dt(1.e-12) {}
 
         // General methods
         void propagate(std::vector<int> &target_particles);
         void run_event();
 
+        //  Photons
+        std::vector<std::pair<int, particle>> propagator_photons(particle &target_particle, ch_radiator target_radiator);
+
         // Cherenkov
-        std::vector<std::pair<int, particle>> get_photons_prediction(particle target_particle, ch_radiator target_radiator);
+        std::vector<int> get_photons_prediction(particle &target_particle, ch_radiator target_radiator);
     };
 
     void propagator::propagate(std::vector<int> &target_particles_id)
@@ -428,12 +211,21 @@ namespace ch_fast_mc
                     if (!current_radiator.is_inside_the_radiator(*current_particle))
                         continue;
                     end_of_propagation = false;
-                    current_particle->set_position(current_particle->get_t() + dt, current_particle->get_x() + current_particle->get_betax() * dt, current_particle->get_y() + current_particle->get_betay() * dt, current_particle->get_z() + current_particle->get_betaz() * dt);
                     if (current_particle->get_mass() == 0)
-                        continue;
-                    auto ph_prediction = get_photons_prediction(*current_particle, current_radiator);
-                    // target_particles_id.push_back();
+                    {
+                        produced_particles = propagator_photons(*current_particle, current_radiator);
+                        for (auto id : produced_particles)
+                            target_particles_id.push_back(id)
+                    }
+                    else
+                    {
+                        current_particle->set_position(current_particle->get_t() + dt, current_particle->get_x() + current_particle->get_betax() * _c0 * 100 * dt, current_particle->get_y() + current_particle->get_betay() * _c0 * 100 * dt, current_particle->get_z() + current_particle->get_betaz() * _c0 * 100 * dt);
+                        auto produced_particles = get_photons_prediction(*current_particle, current_radiator);
+                        for (auto id : produced_particles)
+                            target_particles_id.push_back(id);
+                    }
                 }
+                // break;
                 if (end_of_propagation)
                     break;
             }
@@ -453,35 +245,53 @@ namespace ch_fast_mc
                 break;
         }
     }
-    std::vector<std::pair<int, particle>> propagator::get_photons_prediction(particle target_particle, ch_radiator target_radiator)
+    std::vector<int> propagator::get_photons_prediction(particle &target_particle, ch_radiator target_radiator)
     {
         //  Result
-        std::vector<std::pair<int, particle>> result;
+        std::vector<int> result;
 
         //  Average number of photons produced per cm in specified interval of wavelength
-        auto avg_ph_emitted = cherenkov::simp_frank_tamm_int(cherenkov_emission_wavelength[0], cherenkov_emission_wavelength[1], target_particle.get_beta(), target_radiator.get_refractive_index());
+        auto avg_ph_emitted = dt * target_particle.get_beta() * _c0 * 100 * cherenkov::simp_frank_tamm_int(cherenkov_emission_wavelength[0], cherenkov_emission_wavelength[1], target_particle.get_beta(), target_radiator.get_refractive_index());
 
         //  Decides whether and how many photons to produce
-        auto current_photon_probability = gRandom->Uniform(0., 1.);
-        auto current_integral_probability = 0.;
-        auto n_photons = -1;
-        while (true)
-        {
-            n_photons++;
-            current_integral_probability += TMath::PoissonI(n_photons, avg_ph_emitted);
-            if (current_photon_probability <= current_integral_probability)
-                break;
-        }
+        auto n_photons = probability::poisson_sampling_Atkinson(avg_ph_emitted);
 
         //  If no photons are produced return
         if (!n_photons)
             return result;
 
         //  Generate n photons
-        //  Find a base for the momentum vector
-        auto direction = target_particle.get_momentum().get_spatial_orth_base();
+        //  Find a base for the momentum vector and the target theta
+        auto orth_base = target_particle.get_momentum().get_spatial_orth_base();
+        double emission_theta = cherenkov::get_ch_theta(target_particle.get_beta(), target_radiator.get_refractive_index());
+        for (auto i_ph = 0; i_ph < n_photons; i_ph++)
+        {
+            //  Define the new photon momentum
+            physics_vector current_photon_momentum = {0., 0., 0., 1.}; // = target_particle.get_momentum().get_direction();
+            auto emission_phi = 2 * TMath::Pi() * gRandom->Uniform(0, 1);
+            current_photon_momentum.rotation_on_an_axis(emission_theta, orth_base[1]);
+            current_photon_momentum.rotation_on_an_axis(emission_phi, orth_base[0]);
+            current_photon_momentum.set_t(1.);
 
+            //  Calculate the wavelength of emission
+            double emission_wavelength = (cherenkov_emission_wavelength[0]) / (1 - (gRandom->Uniform(0, 1)) * (cherenkov_emission_wavelength[1] - cherenkov_emission_wavelength[0]) / (cherenkov_emission_wavelength[1]));
+            double emission_energy = 1.e-9 * 1240. / emission_wavelength;
+            current_photon_momentum *= emission_energy;
+            particle current_photon;
+            current_photon.set_momentum(current_photon_momentum);
+            current_photon.set_mass(kPhotonMass);
+
+            result.push_back(target_event.add_particle(target_particle.get_event_id(), current_photon));
+
+            //  Reduce emitting particle energy
+            target_particle.energy_shift(-emission_energy);
+        }
         //
         return result;
+    }
+    std::vector<std::pair<int, particle>> propagator::propagator_photons(particle &target_particle, ch_radiator target_radiator)
+    {
+        auto step_size = photon_interaction::get_step_size();
+        
     }
 };
