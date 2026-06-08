@@ -1,0 +1,45 @@
+# Build tree (out-of-source CMake)
+/build/
+
+# CMake user presets
+CMakeUserPresets.json
+
+# Generated example / test output
+/run.root
+/test.root
+
+# ignore vscode folder
+.vscode
+
+# Prerequisites
+*.d
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Fortran module files
+*.mod
+*.smod
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app

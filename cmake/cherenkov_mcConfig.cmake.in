@@ -1,0 +1,10 @@
+@PACKAGE_INIT@
+
+include(CMakeFindDependencyMacro)
+
+# Re-resolve the dependencies that cherenkov_mc's interface drags in.
+# mist-hep re-finds mist + ROOT itself, so this one line is enough.
+find_dependency(mist-hep 1)
+
+include("${CMAKE_CURRENT_LIST_DIR}/cherenkov_mcTargets.cmake")
+check_required_components(cherenkov_mc)
