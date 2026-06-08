@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.19)
 
 project(cherenkov_mc
-    VERSION     1.0.0
+    VERSION     1.1.0
     DESCRIPTION "Cherenkov fast Monte Carlo — ROOT-backed, built on mist / mist-hep"
     LANGUAGES   CXX
 )
@@ -145,6 +145,9 @@ if(CHERENKOV_MC_BUILD_TESTS)
 
     cherenkov_mc_add_test(physics_vector)
     cherenkov_mc_add_test(geometry)
+    cherenkov_mc_add_test(cherenkov)
+    cherenkov_mc_add_test(photon_interactions)
+    cherenkov_mc_add_test(kinematics)
     cherenkov_mc_add_test(propagation)
 
     message(STATUS "[cherenkov_mc] Tests enabled — binaries in ${CMAKE_BINARY_DIR}/bin")
